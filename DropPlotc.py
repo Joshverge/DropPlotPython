@@ -23,6 +23,7 @@ class PlottingManager():
         self.plotLogX = False; self.plotLogY = False
         self.fitData = False; self.histMode = False
         self.fitMinXrow = 0; self.fitMaxXrow = -1;
+        self.datalogVals = 0;
 
     def setHistMode(self,hs):
         self.histMode = hs
@@ -42,9 +43,35 @@ class PlottingManager():
             if axis is 1:
                 self.plotLogY = False
 
-    def plotData(self,filename, xcol, ycol, xaxis, yaxis, titleIn, labelIn):
-        print "PlotData manager \n"
-        [ty,tx] = self.getData(filename,xcol,ycol,self.plotLogX,self.plotLogY)
+    # def plotData(self,filename, xcol, ycol, xaxis, yaxis, titleIn, labelIn):
+    #     print "def PlotData  \n"
+    #     [ty,tx] = self.getData(filename,xcol,ycol,self.plotLogX,self.plotLogY)
+    #     if self.fitData:
+    #         [txf,tyf,fitpar] = self.fitLinear(tx,ty)
+    #     plt.xlabel(xaxis, **self.fontax); plt.ylabel(yaxis, **self.fontax);
+    #     plt.title(titleIn,**self.font)
+    #     if self.histMode:
+    #         if labelIn is None:
+    #             plt.hist(tx)
+    #         else:
+    #             plt.hist(tx,label=labelIn)
+    #     else:
+    #         if labelIn is None:
+    #             plt.plot(tx, ty, marker='o')
+    #         else:
+    #             plt.plot(tx, ty, marker='o',label=labelIn)
+    #         if self.fitData:
+    #             m = float(fitpar[0])
+    #             b = float(fitpar[1])
+    #             labelFit="Linear Fit |  m : "+('%.3f' % m)+"      b : "+('%.3f' % b)
+    #             plt.plot(txf,tyf(txf),'-',label=labelFit)
+    #     print "Done Plotting"
+
+
+    def plotData(self,filename, xcol, ycol, xaxis, yaxis, titleIn, labelIn, flip_data=True):
+        print "def PlotData  \n"
+        #plt.clf()
+        abstract = self.getData(filename,xcol,ycol,self.plotLogX,self.plotLogY)
         if self.fitData:
             [txf,tyf,fitpar] = self.fitLinear(tx,ty)
         plt.xlabel(xaxis, **self.fontax); plt.ylabel(yaxis, **self.fontax);
@@ -56,15 +83,23 @@ class PlottingManager():
                 plt.hist(tx,label=labelIn)
         else:
             if labelIn is None:
-                plt.plot(tx, ty, marker='o')
+                if flip_data == True:
+                    plt.plot(abstract[ycol], abstract[xcol], marker='o')
+                else:
+                    plt.plot(abstract[xcol], abstract[ycol], marker='o')
             else:
-                plt.plot(tx, ty, marker='o',label=labelIn)
+                if flip_data == True:
+                    plt.plot(abstract[ycol], abstract[xcol], marker='o',label=labelIn)
+                else:
+                    plt.plot(abstract[xcol], abstract[ycol], marker='o',label=labelIn)
+
             if self.fitData:
                 m = float(fitpar[0])
                 b = float(fitpar[1])
                 labelFit="Linear Fit |  m : "+('%.3f' % m)+"      b : "+('%.3f' % b)
                 plt.plot(txf,tyf(txf),'-',label=labelFit)
         print "Done Plotting"
+
 
     def round_sig(x, sig=2):
         return round(x, sig-int(floor(log10(x)))-1)
@@ -85,16 +120,28 @@ class PlottingManager():
         if ',' in fileStr:
             csvType = True
         if csvType:
-            #print "CSV all"
-            data = np.genfromtxt(filename, unpack=True, delimiter=',')
+            print "CSV all"
+            data = np.genfromtxt(filename, unpack=True,delimiter=',',skip_header=2)
+            self.datalogVals = data
+            # data = np.genfromtxt(filename, unpack=False, delimiter=',')
+            #changed unpack to false form True
             #print out size of data
+            print("Data Loaded Shape", data.shape)
+            # if data.shape[0] > 2:
+            #     self.datalogVals = data
+            #     return self.datalogVals
+
 
         else:
             fileStr = re.sub('\s+', ' ', fileStr).strip()
             fp = tempfile.NamedTemporaryFile()
             fp.write(fileStr)
+            print "hi"
             data = np.genfromtxt(filename, unpack=True)
-            #print "hi"
+            self.datalogVals = data
+            print("Data Loaded Shape", data.shape)
+            # if data.shape[0] > 2:
+            #     self.datalogVals = data
 
         if plotLogX:
             tx = np.log(data[xcol]);
@@ -104,7 +151,7 @@ class PlottingManager():
             ty = np.log(data[ycol])
         else:
             ty = data[ycol]
-        return [tx,ty]
+        return data
 
     def checkForPlotParams(self,filename,xcol,ycol,xaxis,yaxis, titleIn):
         paramFile = self.parseDir(filename)+self.plotParamsFilename
@@ -192,6 +239,7 @@ class PlottingManager():
         plt.grid(True);
         plt.legend();
         plt.show()
+        # plt.pause(0.001)
 
 MENU_FILE_EXIT = wx.NewId()
 DRAG_SOURCE    = wx.NewId()
@@ -201,7 +249,7 @@ class PlotFileDropTarget(wx.TextDropTarget):
     def __init__(self, PlottingManager, obj):
         wx.TextDropTarget.__init__(self)
         self.obj = obj
-        self.xCol = 0; self.yCol = 1
+        self.xCol = 14; self.yCol = 15
         self.xTitle = "x"; self.yTitle = "y";
         self.plotTitle = "plot";
         self.plotManager = PlottingManager
@@ -219,8 +267,8 @@ class MainWindow(wx.Frame):
     print " MainWindow \n"
 
     def __init__(self,parent,id,title):
+        # plt.ion()
         wx.Frame.__init__(self,parent, wx.ID_ANY, title, size = (750,600), style=wx.DEFAULT_FRAME_STYLE|wx.NO_FULL_REPAINT_ON_RESIZE)
-
         self.SetBackgroundColour(wx.WHITE)
         # Setup plotting manager
         self.plotManager = PlottingManager()
@@ -244,6 +292,7 @@ class MainWindow(wx.Frame):
         self.dt1.xCol = 0; self.dt1.yCol = 1;
         self.sizer2 = wx.BoxSizer(wx.HORIZONTAL); self.buttons = []
         self.sizer3 = wx.BoxSizer(wx.HORIZONTAL);
+        self.sizer4 = wx.BoxSizer(wx.HORIZONTAL);
 
         # first row of buttons
         self.buttons.append(wx.Button(self, -1, "X Column &"))
@@ -271,6 +320,7 @@ class MainWindow(wx.Frame):
         self.sizer3.Add(self.buttons[5], 1, wx.EXPAND)
         self.Bind(wx.EVT_BUTTON, self.ShowPlots,self.buttons[5])
 
+
         self.buttons.append(wx.Button(self, -1, "Start Histogram &"))
         self.sizer3.Add(self.buttons[6], 1, wx.EXPAND)
         self.Bind(wx.EVT_BUTTON, self.SetHist,self.buttons[6])
@@ -287,10 +337,16 @@ class MainWindow(wx.Frame):
         self.sizer3.Add(self.buttons[9], 1, wx.EXPAND)
         self.Bind(wx.EVT_BUTTON, self.SetFitData,self.buttons[9])
 
+        # Testing adding additional button row
+        self.buttons.append(wx.Button(self, -1, "Test  &"))
+        self.sizer4.Add(self.buttons[10], 1, wx.EXPAND)
+        self.Bind(wx.EVT_BUTTON, self.ShowPlots,self.buttons[5])
+
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.sizer.Add(self.text, 1, wx.EXPAND)
         self.sizer.Add(self.sizer2, 0, wx.EXPAND)
         self.sizer.Add(self.sizer3, 0, wx.EXPAND)
+        self.sizer.Add(self.sizer4, 0, wx.EXPAND)
 
         self.SetSizer(self.sizer)
         self.SetAutoLayout(1)
@@ -373,7 +429,7 @@ class MainWindow(wx.Frame):
         tds.DoDragDrop(True)
 
 class DropPlot(wx.App):
-    print " PlotFileDropTarget \n"
+    print " DropPlot \n"
 
     def OnInit(self):
         frame = MainWindow(None, -1, "DropPlot - Drag data to plot")
