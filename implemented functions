@@ -1,0 +1,52 @@
+class PlottingManager():
+
+      self.data_log = False;
+      self.traj_log = False;
+
+      def plotdata()
+
+      def getdata()
+
+      def setdatalogMode(self,ds):
+          self.data_log = ds
+
+      def settrajlogMode(self,ts):
+          self.traj_log = ts
+
+
+
+
+
+class MainWindow(wx.Frame):
+
+    def __init__(self,parent,id,title):
+
+        self.buttons.append(wx.Button(self, -1, "Set Datalog &"))
+        self.sizer4.Add(self.buttons[11], 1, wx.EXPAND)
+        self.Bind(wx.EVT_BUTTON, self.Setdatalog,self.buttons[11])
+
+        self.buttons.append(wx.Button(self, -1, "Set Trajlog&"))
+        self.sizer4.Add(self.buttons[10], 1, wx.EXPAND)
+        self.Bind(wx.EVT_BUTTON, self.Settrajlog,self.buttons[10])
+
+
+
+    def Setdatalog(self,event):
+        if self.plotManager.data_log:
+            self.plotManager.setdatalogMode(False)
+            #self.dt1.xCol = 10; self.dt1.yCol = 11;
+                                                    #self.plotManager.datalogPlot()
+            self.buttons[11].SetLabel('Set Datalog')
+
+        else:
+            self.plotManager.setdatalogMode(True)
+            self.buttons[11].SetLabel('Datalog set')
+
+    def Settrajlog(self,event):
+        #self.dt1.xCol = 0; self.dt1.yCol = 1;
+        if  self.plotManager.traj_log:
+            self.plotManager.settrajlogMode(False)
+            self.buttons[10].SetLabel('Set Trajlog')
+        else:
+            self.plotManager.settrajlogMode(True)
+            self.buttons[10].SetLabel('Trajlog set')

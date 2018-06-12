@@ -13,23 +13,36 @@ incs=0
 class PlottingManager():
     print "Plotting manager \n"
     def __init__(self):
+        print "__init__(self) \n"
+
         # Change the default colors
         bmap = brewer2mpl.get_map('Set2', 'qualitative', 7)
         colors = bmap.mpl_colors
         mpl.rcParams['axes.color_cycle'] = colors
-        self.plotParamsFilename = "plotparams.dat"
+        self.plotParamsFilename = "plotparamsRANDOM.dat"
         self.font = {'fontname':'Lucid','fontsize':30, 'fontweight':'bold'}
         self.fontax = {'fontname':'Lucid','fontsize':24, 'fontweight':'bold'}
         self.plotLogX = False; self.plotLogY = False
+        self.data_log = False;
+        self.traj_log = False;
         self.fitData = False; self.histMode = False
         self.fitMinXrow = 0; self.fitMaxXrow = -1;
-        self.datalogVals = 0;
+        # self.datalogVals = 0;
 
     def setHistMode(self,hs):
         self.histMode = hs
 
+
+    def setdatalogMode(self,ds):
+        self.data_log = ds
+
+    def settrajlogMode(self,ts):
+        self.traj_log = ts
+
     def setFitData(self,fs):
         self.fitData = fs
+
+
 
     def setLogAxis(self,logOn,axis):
         if logOn:
@@ -69,6 +82,7 @@ class PlottingManager():
 
 
     def plotData(self,filename, xcol, ycol, xaxis, yaxis, titleIn, labelIn, flip_data=True):
+        plt.ion()
         print "def PlotData  \n"
         #plt.clf()
         abstract = self.getData(filename,xcol,ycol,self.plotLogX,self.plotLogY)
@@ -82,37 +96,50 @@ class PlottingManager():
             else:
                 plt.hist(tx,label=labelIn)
         else:
-            if labelIn is None:
-                if flip_data == True:
-                    plt.plot(abstract[ycol], abstract[xcol], marker='o')
-                else:
-                    plt.plot(abstract[xcol], abstract[ycol], marker='o')
+
+            if self.data_log:
+                plt.plot(self.datalogVals[15], self.datalogVals[14], marker='o')
+                plt.plot(self.datalogVals[15], self.datalogVals[14], marker='o')
             else:
-                if flip_data == True:
-                    plt.plot(abstract[ycol], abstract[xcol], marker='o',label=labelIn)
+                if labelIn is None:
+                        if flip_data == True:
+
+                            plt.plot(abstract[ycol], abstract[xcol], marker='o')
+                            #can uncommemt this later
+                            #print "file name **********",filename #HERE
+                        else:
+                             plt.plot(abstract[xcol], abstract[ycol], marker='o')
                 else:
-                    plt.plot(abstract[xcol], abstract[ycol], marker='o',label=labelIn)
+                    if flip_data == True:
+                        plt.plot(abstract[ycol], abstract[xcol], marker='o',label=labelIn)
+                    else:
+                        plt.plot(abstract[xcol], abstract[ycol], marker='o',label=labelIn)
 
             if self.fitData:
                 m = float(fitpar[0])
                 b = float(fitpar[1])
                 labelFit="Linear Fit |  m : "+('%.3f' % m)+"      b : "+('%.3f' % b)
                 plt.plot(txf,tyf(txf),'-',label=labelFit)
+
+        plt.ioff()
+        #plt.pause(.0001)
+        #plt.draw()
         print "Done Plotting"
 
 
-    def round_sig(x, sig=2):
+    def round_sig(x, sig=2): #not used
         return round(x, sig-int(floor(log10(x)))-1)
 
     def fitLinear(self,xcol,ycol):
         if self.fitMaxXrow is (-1):
             self.fitMaxXrow = xcol.shape[0]
         fi = np.polyfit(xcol[self.fitMinXrow:self.fitMaxXrow],ycol[self.fitMinXrow:self.fitMaxXrow],1)
-        self.fitMaxXrow = -1;self.fitMinXrow = 0;
+        self.fitMaxXrow = -1; self.fitMinXrow = 0;
         y =  np.poly1d(fi)
         return [xcol,y,fi]
 
     def getData(self,filename, xcol, ycol,plotLogX = False,plotLogY = False):
+        print "getData \n"
         print "Plotting : ", str(filename)
         fileIn = open(filename,'r')
         fileStr = fileIn.read()
@@ -136,7 +163,7 @@ class PlottingManager():
             fileStr = re.sub('\s+', ' ', fileStr).strip()
             fp = tempfile.NamedTemporaryFile()
             fp.write(fileStr)
-            print "hi"
+            #print "hi"
             data = np.genfromtxt(filename, unpack=True)
             self.datalogVals = data
             print("Data Loaded Shape", data.shape)
@@ -144,6 +171,7 @@ class PlottingManager():
             #     self.datalogVals = data
 
         if plotLogX:
+
             tx = np.log(data[xcol]);
         else:
             tx = data[xcol]; ty = data[ycol]
@@ -154,6 +182,7 @@ class PlottingManager():
         return data
 
     def checkForPlotParams(self,filename,xcol,ycol,xaxis,yaxis, titleIn):
+        print "Checking Plot Parameters ---------"
         paramFile = self.parseDir(filename)+self.plotParamsFilename
         if os.path.exists(paramFile):
             strFile = open(paramFile,"r")
@@ -206,7 +235,7 @@ class PlottingManager():
                 self.plotLogY = False
             inL = paramRaw.find("histogram()")
             if inL is not (-1):
-                self.histMode = True
+                self.histMode = True #CHANGE MADE HERE
             else:
                 self.histMode = False
             inL = paramRaw.find("fit(")
@@ -219,7 +248,7 @@ class PlottingManager():
                     inL = inR + 1
                 inR = paramRaw.find(")",inL,len(paramRaw))
                 self.fitMaxXrow = int(paramRaw[inL:inR])
-
+        print(" Checking Plot Parameters ----- returned values -> xcol,ycol,xaxis,yaxis, titleIn:",xcol,ycol,xaxis,yaxis, titleIn)
         return [xcol,ycol,xaxis,yaxis, titleIn, self.parseLabel(filename)]
 
     def parseDir(self,file):
@@ -235,11 +264,28 @@ class PlottingManager():
         inR = filename.find("+)",inL,len(filename))
         return filename[inL:inR]
 
+    def datalogPlot(self):
+        print " Entering datalogPlot \n"
+
+        try:
+            plt.plot(self.datalogVals[15], self.datalogVals[14], marker='o')
+            plt.plot(self.datalogVals[11], self.datalogVals[10], marker='o')
+        except IndexError:
+            print "Entering exception \n"
+
+    def trajlogPlot(self):
+        print "Entering TrajlogPLot \n"
+        # plt.plot(self.datalogVals[15], self.datalogVals[14], marker='o')
+        # plt.plot(self.datalogVals[11], self.datalogVals[10], marker='o')
+
+
     def showPlot(self):
         plt.grid(True);
         plt.legend();
+        plt.draw()
         plt.show()
-        # plt.pause(0.001)
+        plt.pause(0.01)
+        plt.ioff()
 
 MENU_FILE_EXIT = wx.NewId()
 DRAG_SOURCE    = wx.NewId()
@@ -257,9 +303,15 @@ class PlotFileDropTarget(wx.TextDropTarget):
         self.HistNow = False
 
     def OnDropText(self, x, y, data):
-        self.obj.WriteText("Will plot | "+data[7:-2] + '\n\n')
+
+        self.obj.WriteText("Will plot | "+ data[7:-2] + '\n\n')
         [self.xCol,self.yCol,self.xTitle,self.yTitle,self.plotTitle,labelOut] = self.plotManager.checkForPlotParams(data[7:-2],self.xCol,self.yCol,self.xTitle,self.yTitle,self.plotTitle)
         self.plotManager.plotData(data[7:-2],self.xCol,self.yCol,self.xTitle,self.yTitle,self.plotTitle, labelOut)
+        # print "**********%&^%&%",data[2:0],"************\n"
+        # def plotData(self,filename, xcol, ycol, xaxis, yaxis, titleIn, labelIn):
+        #strategy: FiLeNaMe=os.path.basename(data[7:-2]) the new = splitstring(FileName)
+        #access new[0] -> give give name of file without .csv/whateveer
+        #LOok at hUntER's COdE
         if self.plotNow:
             self.plotManager.showPlot()
 
@@ -338,9 +390,13 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.SetFitData,self.buttons[9])
 
         # Testing adding additional button row
-        self.buttons.append(wx.Button(self, -1, "Test  &"))
+        self.buttons.append(wx.Button(self, -1, "Set Trajlog&"))
         self.sizer4.Add(self.buttons[10], 1, wx.EXPAND)
-        self.Bind(wx.EVT_BUTTON, self.ShowPlots,self.buttons[5])
+        self.Bind(wx.EVT_BUTTON, self.Settrajlog,self.buttons[10])
+
+        self.buttons.append(wx.Button(self, -1, "Set Datalog &"))
+        self.sizer4.Add(self.buttons[11], 1, wx.EXPAND)
+        self.Bind(wx.EVT_BUTTON, self.Setdatalog,self.buttons[11])
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.sizer.Add(self.text, 1, wx.EXPAND)
@@ -388,13 +444,45 @@ class MainWindow(wx.Frame):
             self.plotManager.showPlot()
             self.buttons[5].SetLabel('Hold For Multi Plots')
 
+
+
+    def Settrajlog(self,event):
+        #self.dt1.xCol = 0; self.dt1.yCol = 1;
+        if  self.plotManager.traj_log:
+            self.plotManager.settrajlogMode(False)
+            self.buttons[10].SetLabel('Set Trajlog')
+        else:
+            self.plotManager.settrajlogMode(True)
+            self.buttons[10].SetLabel('Trajlog set')
+
+
+
+        # else:
+        #     self.plotManager.data_log = True
+        #
+        #     self.buttons[11].SetLabel('Datalog not set')
+
+    def Setdatalog(self,event):
+        if self.plotManager.data_log:
+            self.plotManager.setdatalogMode(False)
+            #self.dt1.xCol = 10; self.dt1.yCol = 11;
+                                                    #self.plotManager.datalogPlot()
+            self.buttons[11].SetLabel('Set Datalog')
+
+        else:
+            self.plotManager.setdatalogMode(True)
+            self.buttons[11].SetLabel('Datalog set')
+
+
     def SetHist(self,event):
         if self.plotManager.histMode:
+            #print self.plotManager.histMode
             self.plotManager.setHistMode(False)
             self.buttons[6].SetLabel('Start Histograms')
         else:
             self.plotManager.setHistMode(True)
             self.buttons[6].SetLabel('Start Plots')
+
 
     def SetFitData(self,event):
         if self.plotManager.fitData:
