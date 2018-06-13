@@ -25,6 +25,8 @@ class PlottingManager():
         self.plotLogX = False; self.plotLogY = False
         self.data_log = False;
         self.traj_log = False;
+        self.TimeYaw  = False;
+        self.latlon = False;
         self.fitData = False; self.histMode = False
         self.fitMinXrow = 0; self.fitMaxXrow = -1;
         # self.datalogVals = 0;
@@ -41,6 +43,13 @@ class PlottingManager():
 
     def setFitData(self,fs):
         self.fitData = fs
+
+    def setlatlonMode(self,ss):
+        print " setlatlonMode gets called \n"
+        self.latlon = ss
+
+    def setTimeYawMode(self,ys):
+        self.TimeYaw = ys
 
 
 
@@ -82,7 +91,7 @@ class PlottingManager():
 
 
     def plotData(self,filename, xcol, ycol, xaxis, yaxis, titleIn, labelIn, flip_data=True):
-        plt.ion()
+        #plt.ion()
         print "def PlotData  \n"
         #plt.clf()
         abstract = self.getData(filename,xcol,ycol,self.plotLogX,self.plotLogY)
@@ -90,6 +99,7 @@ class PlottingManager():
             [txf,tyf,fitpar] = self.fitLinear(tx,ty)
         plt.xlabel(xaxis, **self.fontax); plt.ylabel(yaxis, **self.fontax);
         plt.title(titleIn,**self.font)
+
         if self.histMode:
             if labelIn is None:
                 plt.hist(tx)
@@ -97,10 +107,35 @@ class PlottingManager():
                 plt.hist(tx,label=labelIn)
         else:
 
+            do_else = True  # This allows for a default plot when none of the
+                            #buttons are set
+            # fig = plt.figure()
+            # line = fig.add_subplot(2,1,1)
+            # err = fig.add_subplot(2,1,2)
+
             if self.data_log:
-                plt.plot(self.datalogVals[15], self.datalogVals[14], marker='o')
-                plt.plot(self.datalogVals[15], self.datalogVals[14], marker='o')
-            else:
+                # line.plot(self.datalogVals[11], self.datalogVals[10],color='r',label='GPS Trajectory')
+                # line.plot(self.datalogVals[15], self.datalogVals[14],color='b',label='MHE Trajectory')
+                plt.plot(self.datalogVals[15], self.datalogVals[14], marker='o',color='r',label='GPS Trajectory')
+                plt.plot(self.datalogVals[11], self.datalogVals[10], marker='o',color='b',label='MHE Trajectory')
+                print self.data_log, "<--------- data_log \n"
+                print self.latlon, "<--------- latlon \n"
+                do_else = False
+
+            if self.latlon:
+                print "------>>>>Value of self.latlon ",self.latlon
+                plt.plot(self.datalogVals[22], self.datalogVals[23], marker='o',color='g',label='Latitude vs Longitube')
+                do_else = False
+
+            # #
+            if self.TimeYaw:
+                plt.plot(self.datalogVals[32],self.datalogVals[1], marker='o',color='y',label='Yaw vs Time ')
+                do_else = False
+
+
+            if do_else:
+                print "*** ENTERING ELSE AS WELL ***\n"
+
                 if labelIn is None:
                         if flip_data == True:
 
@@ -121,7 +156,7 @@ class PlottingManager():
                 labelFit="Linear Fit |  m : "+('%.3f' % m)+"      b : "+('%.3f' % b)
                 plt.plot(txf,tyf(txf),'-',label=labelFit)
 
-        plt.ioff()
+        #plt.ioff()
         #plt.pause(.0001)
         #plt.draw()
         print "Done Plotting"
@@ -184,6 +219,7 @@ class PlottingManager():
     def checkForPlotParams(self,filename,xcol,ycol,xaxis,yaxis, titleIn):
         print "Checking Plot Parameters ---------"
         paramFile = self.parseDir(filename)+self.plotParamsFilename
+        print "this is the paramFile ", paramFile
         if os.path.exists(paramFile):
             strFile = open(paramFile,"r")
             paramRaw = strFile.read()
@@ -264,19 +300,6 @@ class PlottingManager():
         inR = filename.find("+)",inL,len(filename))
         return filename[inL:inR]
 
-    def datalogPlot(self):
-        print " Entering datalogPlot \n"
-
-        try:
-            plt.plot(self.datalogVals[15], self.datalogVals[14], marker='o')
-            plt.plot(self.datalogVals[11], self.datalogVals[10], marker='o')
-        except IndexError:
-            print "Entering exception \n"
-
-    def trajlogPlot(self):
-        print "Entering TrajlogPLot \n"
-        # plt.plot(self.datalogVals[15], self.datalogVals[14], marker='o')
-        # plt.plot(self.datalogVals[11], self.datalogVals[10], marker='o')
 
 
     def showPlot(self):
@@ -390,13 +413,21 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.SetFitData,self.buttons[9])
 
         # Testing adding additional button row
-        self.buttons.append(wx.Button(self, -1, "Set Trajlog&"))
-        self.sizer4.Add(self.buttons[10], 1, wx.EXPAND)
-        self.Bind(wx.EVT_BUTTON, self.Settrajlog,self.buttons[10])
+        # self.buttons.append(wx.Button(self, -1, "Set Trajlog&"))
+        # self.sizer4.Add(self.buttons[10], 1, wx.EXPAND)
+        # self.Bind(wx.EVT_BUTTON, self.Settrajlog,self.buttons[10])
 
-        self.buttons.append(wx.Button(self, -1, "Set Datalog &"))
+        self.buttons.append(wx.Button(self, -1, "Set GPS&MHE &"))
+        self.sizer4.Add(self.buttons[10], 1, wx.EXPAND)
+        self.Bind(wx.EVT_BUTTON, self.Setdatalog,self.buttons[10])
+
+        self.buttons.append(wx.Button(self, -1, "Set LatLon &"))
         self.sizer4.Add(self.buttons[11], 1, wx.EXPAND)
-        self.Bind(wx.EVT_BUTTON, self.Setdatalog,self.buttons[11])
+        self.Bind(wx.EVT_BUTTON, self.Setlatlon,self.buttons[11])
+
+        self.buttons.append(wx.Button(self, -1, "Set TimeYaw &"))
+        self.sizer4.Add(self.buttons[12], 1, wx.EXPAND)
+        self.Bind(wx.EVT_BUTTON, self.SetTimeYaw,self.buttons[12])
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.sizer.Add(self.text, 1, wx.EXPAND)
@@ -446,16 +477,6 @@ class MainWindow(wx.Frame):
 
 
 
-    def Settrajlog(self,event):
-        #self.dt1.xCol = 0; self.dt1.yCol = 1;
-        if  self.plotManager.traj_log:
-            self.plotManager.settrajlogMode(False)
-            self.buttons[10].SetLabel('Set Trajlog')
-        else:
-            self.plotManager.settrajlogMode(True)
-            self.buttons[10].SetLabel('Trajlog set')
-
-
 
         # else:
         #     self.plotManager.data_log = True
@@ -467,11 +488,29 @@ class MainWindow(wx.Frame):
             self.plotManager.setdatalogMode(False)
             #self.dt1.xCol = 10; self.dt1.yCol = 11;
                                                     #self.plotManager.datalogPlot()
-            self.buttons[11].SetLabel('Set Datalog')
+            self.buttons[10].SetLabel('Set GPS&MHE')
 
         else:
             self.plotManager.setdatalogMode(True)
-            self.buttons[11].SetLabel('Datalog set')
+            self.buttons[10].SetLabel('GPS&MHE set')
+
+    def Setlatlon(self,event):
+        if self.plotManager.latlon:
+            self.plotManager.setlatlonMode(False)
+            self.buttons[11].SetLabel('Set Lat&Lon')
+
+        else:
+            self.plotManager.setlatlonMode(True)
+            self.buttons[11].SetLabel('Lat&Lon set')
+
+    def SetTimeYaw(self,event):
+        if self.plotManager.TimeYaw:
+            self.plotManager.setTimeYawMode(False)
+            self.buttons[12].SetLabel('Set Time&Yaw')
+
+        else:
+            self.plotManager.setTimeYawMode(True)
+            self.buttons[12].SetLabel('Time&Yaw Set')
 
 
     def SetHist(self,event):
