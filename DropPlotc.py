@@ -19,7 +19,7 @@ class PlottingManager():
         bmap = brewer2mpl.get_map('Set2', 'qualitative', 7)
         colors = bmap.mpl_colors
         mpl.rcParams['axes.color_cycle'] = colors
-        self.plotParamsFilename = "plotparamsRANDOM.dat"
+        self.plotParamsFilename = "plotparams.dat"
         self.font = {'fontname':'Lucid','fontsize':30, 'fontweight':'bold'}
         self.fontax = {'fontname':'Lucid','fontsize':24, 'fontweight':'bold'}
         self.plotLogX = False; self.plotLogY = False
@@ -27,9 +27,20 @@ class PlottingManager():
         self.traj_log = False;
         self.TimeYaw  = False;
         self.latlon = False;
+        self.clearMode = False;
         self.fitData = False; self.histMode = False
         self.fitMinXrow = 0; self.fitMaxXrow = -1;
         # self.datalogVals = 0;
+
+    plt.figure(1,figsize=(10,12))
+
+
+    def SetClearMode(self,cs):
+        plt.clf()
+        plt.draw()
+
+        self.clearMode=cs
+
 
     def setHistMode(self,hs):
         self.histMode = hs
@@ -37,9 +48,6 @@ class PlottingManager():
 
     def setdatalogMode(self,ds):
         self.data_log = ds
-
-    def settrajlogMode(self,ts):
-        self.traj_log = ts
 
     def setFitData(self,fs):
         self.fitData = fs
@@ -93,12 +101,15 @@ class PlottingManager():
     def plotData(self,filename, xcol, ycol, xaxis, yaxis, titleIn, labelIn, flip_data=True):
         #plt.ion()
         print "def PlotData  \n"
+        #plt.figure(1);
         #plt.clf()
         abstract = self.getData(filename,xcol,ycol,self.plotLogX,self.plotLogY)
         if self.fitData:
             [txf,tyf,fitpar] = self.fitLinear(tx,ty)
         plt.xlabel(xaxis, **self.fontax); plt.ylabel(yaxis, **self.fontax);
         plt.title(titleIn,**self.font)
+
+
 
         if self.histMode:
             if labelIn is None:
@@ -109,39 +120,29 @@ class PlottingManager():
 
             do_else = True  # This allows for a default plot when none of the
                             #buttons are set
-            # fig = plt.figure()
-            # line = fig.add_subplot(2,1,1)
-            # err = fig.add_subplot(2,1,2)
 
             if self.data_log:
-                # line.plot(self.datalogVals[11], self.datalogVals[10],color='r',label='GPS Trajectory')
-                # line.plot(self.datalogVals[15], self.datalogVals[14],color='b',label='MHE Trajectory')
+                #plt.figure(1)
+                #plt.title('GPS & MHE')
+                #plt.subplot(211)
+
                 plt.plot(self.datalogVals[15], self.datalogVals[14], marker='o',color='r',label='GPS Trajectory')
                 plt.plot(self.datalogVals[11], self.datalogVals[10], marker='o',color='b',label='MHE Trajectory')
-                print self.data_log, "<--------- data_log \n"
-                print self.latlon, "<--------- latlon \n"
                 do_else = False
 
             if self.latlon:
-                print "------>>>>Value of self.latlon ",self.latlon
                 plt.plot(self.datalogVals[22], self.datalogVals[23], marker='o',color='g',label='Latitude vs Longitube')
                 do_else = False
 
-            # #
             if self.TimeYaw:
                 plt.plot(self.datalogVals[32],self.datalogVals[1], marker='o',color='y',label='Yaw vs Time ')
                 do_else = False
 
-
             if do_else:
-                print "*** ENTERING ELSE AS WELL ***\n"
-
                 if labelIn is None:
                         if flip_data == True:
 
                             plt.plot(abstract[ycol], abstract[xcol], marker='o')
-                            #can uncommemt this later
-                            #print "file name **********",filename #HERE
                         else:
                              plt.plot(abstract[xcol], abstract[ycol], marker='o')
                 else:
@@ -303,9 +304,13 @@ class PlottingManager():
 
 
     def showPlot(self):
+        plt.ion()
         plt.grid(True);
         plt.legend();
         plt.draw()
+
+        #plt.clf()
+
         plt.show()
         plt.pause(0.01)
         plt.ioff()
@@ -343,7 +348,7 @@ class MainWindow(wx.Frame):
 
     def __init__(self,parent,id,title):
         # plt.ion()
-        wx.Frame.__init__(self,parent, wx.ID_ANY, title, size = (750,600), style=wx.DEFAULT_FRAME_STYLE|wx.NO_FULL_REPAINT_ON_RESIZE)
+        wx.Frame.__init__(self,parent, wx.ID_ANY, title, size = (750,800), style=wx.DEFAULT_FRAME_STYLE|wx.NO_FULL_REPAINT_ON_RESIZE)
         self.SetBackgroundColour(wx.WHITE)
         # Setup plotting manager
         self.plotManager = PlottingManager()
@@ -429,6 +434,10 @@ class MainWindow(wx.Frame):
         self.sizer4.Add(self.buttons[12], 1, wx.EXPAND)
         self.Bind(wx.EVT_BUTTON, self.SetTimeYaw,self.buttons[12])
 
+        self.buttons.append(wx.Button(self, -1, "clear &"))
+        self.sizer4.Add(self.buttons[13], 1, wx.EXPAND)
+        self.Bind(wx.EVT_BUTTON, self.SetClearButton,self.buttons[13])
+
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.sizer.Add(self.text, 1, wx.EXPAND)
         self.sizer.Add(self.sizer2, 0, wx.EXPAND)
@@ -493,6 +502,12 @@ class MainWindow(wx.Frame):
         else:
             self.plotManager.setdatalogMode(True)
             self.buttons[10].SetLabel('GPS&MHE set')
+
+
+    def SetClearButton(self,event):
+        print "Entering clear buttons \n"
+        self.plotManager.SetClearMode(True)
+        self.buttons[13].SetLabel('clear')
 
     def Setlatlon(self,event):
         if self.plotManager.latlon:
