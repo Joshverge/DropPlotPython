@@ -66,16 +66,25 @@ class PlottingManager():
         self.clearMode = False;
         self.gps = False
         self.mhe = False
+        self.TrajAddr = False
 
     def SetClearMode(self,cs):
         plt.clf()
         plt.draw()
         self.clearMode=cs
 
+    def SetTrajAddrMode(self,ts):
+        self.TrajAddr = ts
 
-    def setHistMode(self,hs):
-        self.histMode = hs
-
+    def TrajSaveAddr(self, filename):
+        if self.TrajAddr == True:
+            save_path = filename
+            name_of_file = "TrajAddress"
+            completeName = os.path.join(os.getcwd(), name_of_file + ".txt")
+            file1 = open(completeName, "w")
+            toFile = save_path
+            file1.write(toFile)
+            file1.close()
 
     def setdatalogMode(self,ds):
         self.data_log = ds
@@ -97,52 +106,71 @@ class PlottingManager():
         self.mhe = ms
 
     def plotData(self,filename, xcol, ycol, flip_data=True):
-        abstract = self.getData(filename,xcol,ycol)
-        # plt.plot(abstract[0], abstract[1])
 
 
-        do_else = True  # This allows for a default plot when none of the
-                        #buttons are set
-        if self.data_log:
-                            #plt.figure(1)
-                            #plt.title('GPS & MHE')
-                            #plt.subplot(211)
-            pri_llx, pri_lly = dlatlon2xy(self.datalogVals[22],self.datalogVals[23]*-1, self.datalogVals[11][0], self.datalogVals[10][0])
-            sec_llx, sec_lly = dlatlon2xy(self.datalogVals[24],self.datalogVals[25]*-1, self.datalogVals[11][0], self.datalogVals[10][0])
-            plt.plot(self.datalogVals[15], self.datalogVals[14],color='r',label='MHE Trajectory')
-            plt.plot(self.datalogVals[11], self.datalogVals[10], marker='+',color='k',label='GPS Trajectory')
-            plt.plot(self.datalogVals[51], self.datalogVals[50]*-1,color='g',label='GPS-INS Trajectory')
-            plt.plot(pri_lly,pri_llx, color='b',label='primary LatLon Trajectory')
-            plt.plot(sec_lly,sec_llx, color='y',label='secondary LatLon Trajectory')
 
-            do_else = False
-
-        if self.latlon:
-            plt.plot(self.datalogVals[22], self.datalogVals[23], marker='o',color='g',label='Latitude vs Longitube')
-            do_else = False
-
-        if self.TimeYaw:
-            plt.plot(self.datalogVals[32],self.datalogVals[1], marker='o',color='y',label='Yaw vs Time ')
-            do_else = False
-
-        if self.gps:
-            plt.plot(self.datalogVals[11], self.datalogVals[10], marker='o',color='b',label='GPS Trajectory')
-            do_else = False
-
-        if self.mhe:
-            plt.plot(self.datalogVals[15], self.datalogVals[14], marker='o', color = 'r', label = 'MHE Trajectory')
-            do_else = False
-
-        if do_else:
-
-            if flip_data == True:
-
-                plt.plot(abstract[ycol], abstract[xcol], marker='o')
-            else:
-                 plt.plot(abstract[xcol], abstract[ycol], marker='o')
+            abstract = self.getData(filename,xcol,ycol)
 
 
-        print "Done Plotting"
+
+
+
+            do_else = True  # This allows for a default plot when none of the
+                            #buttons are set
+            if self.data_log:
+                                #plt.figure(1)
+                                #plt.title('GPS & MHE')
+                                #plt.subplot(211)
+                pri_llx, pri_lly = dlatlon2xy(self.datalogVals[22],self.datalogVals[23]*-1, self.datalogVals[11][0], self.datalogVals[10][0])
+                sec_llx, sec_lly = dlatlon2xy(self.datalogVals[24],self.datalogVals[25]*-1, self.datalogVals[11][0], self.datalogVals[10][0])
+                plt.plot(self.datalogVals[15], self.datalogVals[14],color='r',label='MHE Trajectory')
+                plt.plot(self.datalogVals[11], self.datalogVals[10], marker='+',color='k',label='GPS Trajectory')
+                plt.plot(self.datalogVals[51], self.datalogVals[50]*-1,color='g',label='GPS-INS Trajectory')
+                plt.plot(pri_lly,pri_llx, color='b',label='primary LatLon Trajectory')
+                plt.plot(sec_lly,sec_llx, color='y',label='secondary LatLon Trajectory')
+
+                try:
+
+                    if self.TrajAddr == False:
+                        # plt.plot(abstract[0], abstract[1])
+                        cwd = os.getcwd()   #this line makes script "portable" as it can be run from any directory
+                        ShortTrajPath = os.path.join(cwd, "TrajAddress" + ".txt") #since TrajAddress is always saved in local dir of program
+                        with open(ShortTrajPath,"r") as f:
+                            TrajPath = f.read()
+                            TrajData = self.getData(TrajPath,xcol,ycol)
+                            plt.plot(TrajData[1], TrajData[0],color='r',label='Trajectory')
+
+                except IOError:
+                        pass    
+
+                do_else = False
+
+            if self.latlon:
+                plt.plot(self.datalogVals[22], self.datalogVals[23], marker='o',color='g',label='Latitude vs Longitube')
+                do_else = False
+
+            if self.TimeYaw:
+                plt.plot(self.datalogVals[32],self.datalogVals[1], marker='o',color='y',label='Yaw vs Time ')
+                do_else = False
+
+            if self.gps:
+                plt.plot(self.datalogVals[11], self.datalogVals[10], marker='o',color='b',label='GPS Trajectory')
+                do_else = False
+
+            if self.mhe:
+                plt.plot(self.datalogVals[15], self.datalogVals[14], marker='o', color = 'r', label = 'MHE Trajectory')
+                do_else = False
+
+            if do_else:
+
+                if flip_data == True:
+
+                    plt.plot(abstract[ycol], abstract[xcol], marker='o')
+                else:
+                     plt.plot(abstract[xcol], abstract[ycol], marker='o')
+
+
+            print "Done Plotting"
 
 
 
@@ -184,11 +212,17 @@ class PlotFileDropTarget(wx.TextDropTarget):
         wx.TextDropTarget.__init__(self)
         self.obj = obj
         self.plotManager = PlottingManager
+        self.mainwindow = MainWindow
 
     def OnDropText(self, x, y, data):
         self.obj.WriteText("Will plot | "+ data[7:-2] + '\n\n')
+        self.plotManager.TrajSaveAddr(data[7:-2])
         self.plotManager.plotData(data[7:-2],0,1)
-        self.plotManager.showPlot()
+        if self.plotManager.TrajAddr == False :
+            self.plotManager.showPlot()
+        # else: does work right now - trying to implement
+        #     self.mainwindow.SetTrajAddr()
+
 
 class MainWindow(wx.Frame):
     def __init__(self,parent,id,title):
@@ -271,6 +305,11 @@ class MainWindow(wx.Frame):
         self.sizer4.Add(self.buttons[11], 1, wx.EXPAND)
         self.Bind(wx.EVT_BUTTON, self.SetClearButton, self.buttons[11])
 
+        self.buttons.append(wx.Button(self, -1, "Set Traj address &"))
+        self.sizer4.Add(self.buttons[12], 1, wx.EXPAND)
+        self.Bind(wx.EVT_BUTTON, self.SetTrajAddr, self.buttons[12])
+
+
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.sizer.Add(self.text, 1, wx.EXPAND)
         self.sizer.Add(self.sizer2, 0, wx.EXPAND)
@@ -306,6 +345,16 @@ class MainWindow(wx.Frame):
         self.boxCol1 = wx.TextEntryDialog(None,"Plot Title? ","X-axis","0")
         if self.boxCol1.ShowModal() == wx.ID_OK :
             self.dt1.plotTitle = self.boxCol1.GetValue()
+
+    # @staticmethod
+    def SetTrajAddr(self,event):
+        if self.plotManager.TrajAddr:
+            self.plotManager.SetTrajAddrMode(False)
+            self.buttons[12].SetLabel('Set Traj address')
+
+        else:
+            self.plotManager.SetTrajAddrMode(True)
+            self.buttons[12].SetLabel('Drop file')
 
     #functions that plot
 
@@ -382,7 +431,10 @@ class MainWindow(wx.Frame):
 
 class DropPlot(wx.App):
     def OnInit(self):
+        self.plotManager = PlottingManager
         frame = MainWindow(None, -1, "Drag data upto this window to plot")
+        # if self.plotManager.TrajAddr == True :
+            # frame.SetTrajAddr(wx.EVT_BUTTON)
         self.SetTopWindow(frame)
         return True
 
